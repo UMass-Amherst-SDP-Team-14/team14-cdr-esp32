@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "gpio_struct.h": "c",
+        "string.h": "c",
+        "uart.h": "c"
+    }
+}
