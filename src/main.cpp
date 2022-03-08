@@ -19,11 +19,10 @@
 #define SERIAL_BAUD 115200
 #define GPS_BAUD 9600
 
-#define LORA_SSPIN 34
-#define LORA_RSTPIN 35
-#define LORA_DIO0PIN 13
-#define LORA_MISO 17
-#define LORA_MOSI 26
+#define LORA_SSPIN 38
+#define LORA_RSTPIN 39
+#define LORA_DIO0PIN 40
+// SCK = 36, MISO = 35, MOSI = 37
 
 #define LORA_FREQ 915E6
 
@@ -140,6 +139,7 @@ void setup()
   LoRa.beginPacket();
   LoRa.print("Hello World!");
   LoRa.endPacket();
+  LoRa.receive();
 }
 
 long counter = 0;
