@@ -1,2 +1,2 @@
-void initWebServer(char* web_ssid);
+void initWebServer();
 void handleClient(double lats[], double lons[]);

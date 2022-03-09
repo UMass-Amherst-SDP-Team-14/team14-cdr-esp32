@@ -1,3 +1,10 @@
-void initLora(SPIClass lora_spi, int sspin, int rstpin, int dio0pin, String unique_id);
+void sendMessage(double lat, double lon, uint32_t time, uint32_t date);
+void sendRelay(String message);
 void onReceive(int packetSize);
-void sendMessage(String message, String destination);
+void initLora();
+
+#ifdef BASE_NODE
+int* getIDList();
+double* getLatList();
+double* getLonList();
+#endif

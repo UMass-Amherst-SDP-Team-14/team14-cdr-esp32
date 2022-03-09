@@ -1,16 +1,14 @@
+#include "defs.h"
 #include <WiFi.h>
-
-#define WEB_PORT 80
-#define WEB_TIMEOUTTIME 2000 // in ms
 
 WiFiServer http_server(WEB_PORT);
 
-void initWebServer(char* web_ssid)
+void initWebServer()
 {
     // Connect to Wi-Fi network with SSID and password
     Serial.println("Initializing Access Point...");
     // Remove the password parameter, if you want the AP (Access Point) to be open
-    WiFi.softAP(web_ssid);
+    WiFi.softAP(WEB_SSID);
 
     IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");

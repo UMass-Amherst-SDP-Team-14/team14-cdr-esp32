@@ -1,3 +1,4 @@
+#include "defs.h"
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
@@ -55,6 +56,21 @@ uint32_t getCurrentTime(TinyGPSPlus gps)
     }
 }
 
-void gpsInit(int gps_ctrl_pin) {
-    digitalWrite(gps_ctrl_pin, HIGH);
+void gpsInit()
+{
+    pinMode(GPS_CTRL_PIN, OUTPUT);
+    digitalWrite(GPS_CTRL_PIN, LOW);
+    Serial.println("GPS Init");
+}
+
+void gpsOn()
+{
+    digitalWrite(GPS_CTRL_PIN, HIGH);
+    Serial.println("GPS On");
+}
+
+void gpsOff()
+{
+    digitalWrite(GPS_CTRL_PIN, HIGH);
+    Serial.println("GPS Off");
 }
