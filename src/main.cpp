@@ -3,7 +3,9 @@
 #include <SPI.h>
 #include <LoRa.h>
 #include <string.h>
-#include <ArduinoJson.h>
+#include "gps/gps.h"
+#include "lora/lora.h"
+#include "web/web.h"
 
 #define DEVICE_ADDRESS "83"
 #define BASE_ADDRESS "00"
@@ -15,7 +17,7 @@
 #define LED_BLINK_DURATION 100
 
 #define GPS_RXPIN 42
-#define GPS_TXPIN 17  // unused
+#define GPS_TXPIN 17 // unused
 #define SERIAL_BAUD 115200
 #define GPS_BAUD 9600
 
@@ -26,15 +28,14 @@
 
 #define LORA_FREQ 915E6
 
-#define LED_PIN 19  // onboard RGB pin
+#define LED_PIN 19 // onboard RGB pin
 #define BTN_PIN 26
 #define GPS_CTRL_PIN 26
 
 #define TESTING_MODE 0 // activate if working inside with no GPS signal
 #define VERBOSE_MODE 1 // activate for more serial output
 
-// The TinyGPS++ object
-TinyGPSPlus gps;
+#define WEB_SSID "gotcha-base0"
 
 // The serial connection to the GPS device
 SoftwareSerial ss(GPS_RXPIN, GPS_TXPIN);
@@ -42,103 +43,8 @@ SoftwareSerial ss(GPS_RXPIN, GPS_TXPIN);
 // SPI channel for use with lora
 SPIClass spi_lora(SPI);
 
-void printLog(int count, char message[])
-{
-    Serial.print("[");
-    Serial.print(count);
-    Serial.print("] ");
-    Serial.println(message);
-}
-
-void onReceive(int packetSize)
-{
-    Serial.print("HERE");
-    String input = "";
-    while (LoRa.available() > 0)
-    {
-        input = input + (char)LoRa.read();
-    }
-
-    if (VERBOSE_MODE)
-    {
-        Serial.println(input);
-        Serial.print("Packet RSSI: ");
-        Serial.println(LoRa.packetRssi());
-    }
-
-    StaticJsonDocument<200> incoming_packet;
-    DeserializationError error = deserializeJson(incoming_packet, input);
-
-    if (error)
-    {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.f_str());
-        return;
-    }
-
-    String to_addr = incoming_packet["to"];
-    Serial.println(to_addr);
-    if (!to_addr.compareTo(DEVICE_ADDRESS))
-    {
-        Serial.println("This packet is for me");
-    }
-    else
-    {
-        Serial.println("This packet is not for me");
-    }
-}
-
-double getCurrentLat()
-{
-    if (gps.location.isValid())
-    {
-        return gps.location.lat();
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-double getCurrentLng()
-{
-    if (gps.location.isValid())
-    {
-        return gps.location.lng();
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-double getCurrentAltitude()
-{
-}
-
-uint32_t getCurrentDate()
-{
-    if (gps.date.isValid())
-    {
-        return gps.date.value();
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-uint32_t getCurrentTime()
-{
-    if (gps.date.isValid())
-    {
-        return gps.time.value();
-    }
-    else
-    {
-        return 0;
-    }
-}
+// gps encoder/decoder object
+TinyGPSPlus gps;
 
 void setup()
 {
@@ -155,26 +61,13 @@ void setup()
     pinMode(GPS_CTRL_PIN, OUTPUT);
     digitalWrite(GPS_CTRL_PIN, LOW);
 
-    LoRa.setPins(LORA_SSPIN, LORA_RSTPIN, LORA_DIO0PIN);
-    LoRa.setSPI(spi_lora);
+    // initialize lora
+    initLora(spi_lora, LORA_SSPIN, LORA_RSTPIN, LORA_DIO0PIN, DEVICE_ADDRESS);
 
-    // LoRa.setTxPower(17);
-    if (!LoRa.begin(LORA_FREQ))
-    {
-        Serial.println("Starting LoRa failed!");
-        while (1)
-            ;
-    }
-
-    printLog(0, "LoRa Init");
-
-    LoRa.receive();
-    LoRa.onReceive(onReceive);
-
-    //delay(4000);
+    // initialize web server
+    initWebServer(WEB_SSID);
 }
 
-long counter = 0;
 unsigned long lastSent = 0;
 unsigned long lastBlink = 0;
 double currentLat = 0;
@@ -186,21 +79,24 @@ uint32_t currentDate = 0;
 
 int button_pressed = 0;
 int executed_button = 0;
-int isActive = 1;
+int isActive = 1;  // set to 1 to ignore button
 int isInit = 0;
+
+double tempLats[] = {10, 20};
+double tempLons[] = {10, 20};
 
 void loop()
 {
+    handleClient(tempLats, tempLons);  // handle web server clients
+
+    /*
     // is the button being pressed?
     if (digitalRead(BTN_PIN) == HIGH)
     {
         // button is not being pressed
         if (button_pressed)
         {
-            if (VERBOSE_MODE)
-            {
-                printLog(counter, "Button is released");
-            }
+            Serial.println("Button is released");
         }
         button_pressed = 0;
         executed_button = 0;
@@ -210,10 +106,7 @@ void loop()
         // button is being pressed
         if (!button_pressed)
         {
-            if (VERBOSE_MODE)
-            {
-                printLog(counter, "Button is pressed");
-            }
+            Serial.println("Button is pressed");
         }
         button_pressed = 1;
     }
@@ -247,8 +140,8 @@ void loop()
     {
         if (!isInit)
         {
-            digitalWrite(GPS_CTRL_PIN, HIGH);
-            printLog(counter, "GPS Init");
+            gpsInit(GPS_CTRL_PIN);
+            Serial.println("GPS Init");
             isInit = 1;
 
             while (ss.available() == 0)
@@ -275,13 +168,6 @@ void loop()
             LoRa.print("\"to\":");
             LoRa.print("\"");
             LoRa.print(BASE_ADDRESS);
-            LoRa.print("\"");
-
-            LoRa.print(",");
-
-            LoRa.print("\"id\":");
-            LoRa.print("\"");
-            LoRa.print(counter);
             LoRa.print("\"");
 
             LoRa.print(",");
@@ -313,7 +199,7 @@ void loop()
             LoRa.endPacket();
             LoRa.receive(); // go back to receive mode
 
-            printLog(counter, "Sent LoRa Packet");
+            Serial.println("Sent LoRa Packet");
 
             lastSent = millis();
         }
@@ -323,20 +209,18 @@ void loop()
         {
             if (gps.encode(ss.read()))
             {
-                float recordedLat = getCurrentLat();
-                float recordedLng = getCurrentLng();
+                float recordedLat = getCurrentLat(gps);
+                float recordedLng = getCurrentLng(gps);
 
                 lastLng = currentLng;
                 lastLat = currentLat;
                 currentLat = recordedLat;
                 currentLng = recordedLng;
-                currentTime = getCurrentTime();
-                currentDate = getCurrentDate();
+                currentTime = getCurrentTime(gps);
+                currentDate = getCurrentDate(gps);
             }
         }
-    }
+    }*/
 
-    delay(10);
-
-    counter++;
+    //delay(10);
 }
