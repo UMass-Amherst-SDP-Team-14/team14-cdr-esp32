@@ -1,7 +1,6 @@
 #include "defs.h"
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
-#include <SPI.h>
 #include "gps/gps.h"
 #include "lora/lora.h"
 #include "web/web.h"
@@ -47,15 +46,25 @@ uint32_t currentDate = 0;
 
 int button_pressed = 0;
 int executed_button = 0;
-int isActive = 1; // set to 1 to ignore button
-int isInit = 0;
 
-double tempLats[] = {10, 20};
-double tempLons[] = {10, 20};
+#ifdef BASE_NODE
+int isActive = 1; // set to 1 to ignore button
+#endif
+
+#ifdef WORKER_NODE
+int isActive = 1; // set to 0 later
+#endif
+
+int isInit = 0;
 
 void loop()
 {
-    handleClient(tempLats, tempLons); // handle web server clients
+    rxPackets();
+    processRelays();
+
+#ifdef BASE_NODE
+    handleClient(currentLat, currentLng, getIDList(), getLatList(), getLonList()); // handle web server clients
+#endif
 
     // is the button being pressed?
     if (digitalRead(BTN_PIN) == HIGH)
@@ -114,18 +123,6 @@ void loop()
                 ; // wait for something from the GPS
         }
 
-// Do we need to send anything? Check if lat/lon has changed or if the timeout is exceeded
-#ifdef WORKER_NODE
-        float diffLat = abs(currentLat - lastLat);
-        float diffLon = abs(currentLng - lastLng);
-        if (diffLat > LOC_TOLERANCE || diffLon > LOC_TOLERANCE || millis() > lastSent + TIMEOUT_SEND)
-        {
-            sendMessage(currentLat, currentLng, currentTime, currentDate);
-
-            lastSent = millis(); // update timestamp for the last message sent
-        }
-#endif
-
         // check if GPS has something to report
         while (ss.available() > 0)
         {
@@ -142,7 +139,18 @@ void loop()
                 currentDate = getCurrentDate(gps);
             }
         }
-    }
 
-    // delay(10);
+// Do we need to send anything? Check if lat/lon has changed or if the timeout is exceeded
+#ifdef WORKER_NODE
+        float diffLat = abs(currentLat - lastLat);
+        float diffLon = abs(currentLng - lastLng);
+        if (diffLat > LOC_TOLERANCE || diffLon > LOC_TOLERANCE || millis() > lastSent + TIMEOUT_SEND)
+        {
+            Serial.println("Sending updated location...");
+            sendMessage(currentLat, currentLng, currentTime, currentDate);
+
+            lastSent = millis(); // update timestamp for the last message sent
+        }
+#endif
+    }
 }

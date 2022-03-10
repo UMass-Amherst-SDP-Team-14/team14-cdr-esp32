@@ -12,10 +12,15 @@ double node_lonlist[MAX_NODES];
 #endif
 
 #ifdef WORKER_NODE
+int packetCounter = 0;
 void sendMessage(double lat, double lon, uint32_t time, uint32_t date)
 {
-    StaticJsonDocument<300> sending_data;
+    StaticJsonDocument<200> sending_data;
 
+    char delimiter = '/';
+    String packet_id = DEVICE_ADDRESS + (String)delimiter + (String)packetCounter;
+
+    sending_data["id"] = packet_id;
     sending_data["from"] = DEVICE_ADDRESS;
     sending_data["lat"] = lat;
     sending_data["lon"] = lon;
@@ -33,24 +38,118 @@ void sendMessage(double lat, double lon, uint32_t time, uint32_t date)
 
     Serial.print("Sent LoRa Packet: ");
     Serial.println(message);
+
+    packetCounter++;
 }
 #endif
 
-void relayMessage(String message) {
+void sendRelay(String message)
+{
     LoRa.beginPacket();
     LoRa.print(message);
     LoRa.endPacket();
 
     LoRa.receive(); // go back to receive mode
 
-    Serial.print("Relayed LoRa message: ");
+    Serial.print("Relayed LoRa Packet: ");
     Serial.println(message);
 }
 
 #define SENT_BUFFER_SIZE 200
+String sentList[SENT_BUFFER_SIZE];
 
-int sentList[SENT_BUFFER_SIZE];
+#define RELAY_QUEUE_SIZE 200
+String relayQueue[RELAY_QUEUE_SIZE];
+int relayQueueIndex = 0;
+
 int listIndexIncrement = 0;
+
+void rxPackets()
+{
+    int packetSize = LoRa.parsePacket();
+    if (packetSize)
+    {
+        String input = "";
+        while (LoRa.available() > 0)
+        {
+            input = input + (char)LoRa.read();
+        }
+
+        Serial.print("Rx Packet: ");
+        Serial.println(input); // print out incoming packet
+
+        StaticJsonDocument<200> incoming_packet;
+
+        if (deserializeJson(incoming_packet, input))
+        {
+            Serial.println("JSON Decoding Failed");
+            return;
+        }
+
+        // Serial.print("Packet RSSI: ");
+        // Serial.println(LoRa.packetRssi());
+
+        String packet_id = incoming_packet["id"];
+        bool shouldSendRelay = true;
+        for (int i = 0; i < SENT_BUFFER_SIZE; i++)
+        {
+            if (sentList[i] == packet_id)
+            {
+                shouldSendRelay = false;
+            }
+        }
+
+        if (incoming_packet["from"] == DEVICE_ADDRESS)
+        {
+            shouldSendRelay = false;
+        }
+
+        if (shouldSendRelay)
+        {
+            sentList[listIndexIncrement] = packet_id;
+            listIndexIncrement++;
+            if (listIndexIncrement >= SENT_BUFFER_SIZE)
+            {
+                listIndexIncrement = 0;
+            }
+
+            relayQueue[relayQueueIndex] = input;
+            relayQueueIndex++;
+            if (relayQueueIndex >= RELAY_QUEUE_SIZE)
+            {
+                relayQueueIndex = 0;
+            }
+        }
+
+#ifdef BASE_NODE
+        // pull coordinates out of packet
+        // check if index already exists
+
+        int node_index = -1;
+        for (int i = 0; i < num_disc_nodes; i++)
+        {
+            if (node_idlist[i] == (int)incoming_packet["from"])
+            {
+                node_index = i;
+            }
+        }
+
+        if (node_index < 0)
+        {
+            node_index = num_disc_nodes;
+            num_disc_nodes++;
+        }
+
+        node_idlist[node_index] = (int)incoming_packet["from"];
+        node_latlist[node_index] = (double)incoming_packet["lat"];
+        node_lonlist[node_index] = (double)incoming_packet["lon"];
+
+        // Serial.print("Received updated coordinates from node ID: ");
+        // Serial.println(node_idlist[node_index]);
+#endif
+    }
+}
+
 void onReceive(int packetSize)
 {
     String input = "";
@@ -59,44 +158,50 @@ void onReceive(int packetSize)
         input = input + (char)LoRa.read();
     }
 
+    Serial.print("Rx Packet: ");
     Serial.println(input); // print out incoming packet
 
-    StaticJsonDocument<300> incoming_packet;
-    DeserializationError error = deserializeJson(incoming_packet, input);
+    StaticJsonDocument<200> incoming_packet;
 
-    if (error)
+    if (deserializeJson(incoming_packet, input))
     {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.f_str());
+        Serial.println("JSON Decoding Failed");
         return;
     }
 
     // Serial.print("Packet RSSI: ");
     // Serial.println(LoRa.packetRssi());
 
-    bool sendRelay = true;
+    String packet_id = incoming_packet["id"];
+    bool shouldSendRelay = true;
     for (int i = 0; i < SENT_BUFFER_SIZE; i++)
     {
-        if (sentList[i] == (int)incoming_packet["id"])
+        if (sentList[i] == packet_id)
         {
-            sendRelay = false;
+            shouldSendRelay = false;
         }
     }
 
-    if (sendRelay)
+    if (incoming_packet["from"] == DEVICE_ADDRESS)
     {
-        relayMessage(input); // relay the packet
-        sentList[listIndexIncrement] = (int)incoming_packet["id"];
+        shouldSendRelay = false;
+    }
+
+    if (shouldSendRelay)
+    {
+        sentList[listIndexIncrement] = packet_id;
         listIndexIncrement++;
         if (listIndexIncrement >= SENT_BUFFER_SIZE)
         {
             listIndexIncrement = 0;
         }
-        Serial.println("Relaying packet...");
-    }
-    else
-    {
-        Serial.println("Already relayed this packet, skipping");
+
+        relayQueue[relayQueueIndex] = input;
+        relayQueueIndex++;
+        if (relayQueueIndex >= RELAY_QUEUE_SIZE)
+        {
+            relayQueueIndex = 0;
+        }
     }
 
 #ifdef BASE_NODE
@@ -118,25 +223,37 @@ void onReceive(int packetSize)
         num_disc_nodes++;
     }
 
-    node_idlist[node_index] = incoming_packet["from"];
-    node_latlist[node_index] = incoming_packet["lat"];
-    node_lonlist[node_index] = incoming_packet["lon"];
+    node_idlist[node_index] = (int)incoming_packet["from"];
+    node_latlist[node_index] = (double)incoming_packet["lat"];
+    node_lonlist[node_index] = (double)incoming_packet["lon"];
 
-    Serial.print("Received updated coordinates from node ID: ");
-    Serial.println(node_idlist[node_index]);
+    // Serial.print("Received updated coordinates from node ID: ");
+    // Serial.println(node_idlist[node_index]);
 #endif
+}
+
+void processRelays()
+{
+    for (int i = 0; relayQueue[i] != ""; i++)
+    {
+        sendRelay(relayQueue[i]);
+        relayQueue[i] = "";
+    }
+
+    relayQueueIndex = 0;
 }
 
 void initLora()
 {
     LoRa.setPins(LORA_SSPIN, LORA_RSTPIN, LORA_DIO0PIN);
-    SPIClass spi_lora(LORA_SPICLASS);
-    LoRa.setSPI(spi_lora);
+    // SPIClass spi_lora(LORA_SPICLASS);
+    // LoRa.setSPI(spi_lora);
+    LoRa.setSyncWord(LORA_SYNC);
+    LoRa.setTxPower(LORA_TXPOWER);
 
-    // LoRa.setTxPower(17);
     if (!LoRa.begin(LORA_FREQ))
     {
-        Serial.println("Starting LoRa failed!");
+        Serial.println("LoRa initialization failed!");
         while (1)
             ;
     }
@@ -144,7 +261,7 @@ void initLora()
     Serial.println("LoRa Initialized");
 
     LoRa.receive();
-    LoRa.onReceive(onReceive);
+    //LoRa.onReceive(onReceive);
 }
 
 #ifdef BASE_NODE

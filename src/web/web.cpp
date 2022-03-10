@@ -18,8 +18,10 @@ void initWebServer()
     http_server.begin();
 }
 
-void handleClient(double lats[], double lons[])
+void handleClient(double base_lat, double base_lon, int ids[], double lats[], double lons[])
 {
+    int numNodes = sizeof(ids);
+
     WiFiClient client = http_server.available();
     if (client)
     {
@@ -58,20 +60,27 @@ void handleClient(double lats[], double lons[])
                             client.println("<body>");
                             //client.println("<div id=\"map\" style=\"width: 100vw; height: 100vh;\"></div>");
 
-                            size_t count = sizeof(lats);
-                            if (sizeof(lons) == count) {
-                                for (int i = 0; i < count; i++) {
-                                    // add point on map
-                                    client.print("<h2>ID: ");
-                                    client.print(i);
-                                    client.println("</h2>");
-                                    client.print("<h3>Longitude: ");
-                                    client.print(lons[i]);
-                                    client.print("</h3>");
-                                    client.print("<h3>Latitude: ");
-                                    client.print(lats[i]);
-                                    client.print("</h3>");
-                                }
+                            client.print("<h2>Base Node</h2>");
+
+                            client.print("<h2>This Node (Base)</h2>");
+                            client.print("<p><strong>Longitude:</strong> ");
+                            client.print(base_lat);
+                            client.print("</p>");
+                            client.print("<p><strong>Latitude:</strong> ");
+                            client.print(base_lon);
+                            client.print("</p>");
+
+                            for (int i = 0; i < numNodes; i++) {
+                                // add point on map
+                                client.print("<h2>Address: ");
+                                client.print(ids[i]);
+                                client.println("</h2>");
+                                client.print("<p><strong>Longitude:</strong> ");
+                                client.print(lons[i]);
+                                client.print("</p>");
+                                client.print("<p><strong>Latitude:</strong> ");
+                                client.print(lats[i]);
+                                client.print("</p>");
                             }
 
                             // mapping code
@@ -97,28 +106,25 @@ void handleClient(double lats[], double lons[])
                             client.println("});");
 
                             // LOOP STARTS HERE
-                            //size_t count = sizeof(lats);
-                            if (sizeof(lons) == count) {
-                                for (int i = 0; i < count; i++) {
-                                    // add point on map
-                                    client.println("map.addLayer(");
-                                    client.println("new ol.layer.Vector({");
-                                    client.println("source: new ol.source.Vector({ features: [new ol.Feature({");
-                                    client.print("geometry: new ol.geom.Point(ol.proj.transform([parseFloat(");
-                                    client.print(lons[i]);
-                                    client.print("), parseFloat(");
-                                    client.print(lats[i]);
-                                    client.println(")], 'EPSG:4326', 'EPSG:3857')),");
-                                    client.println("})] }),");
-                                    client.println("style: new ol.style.Style({ image: new ol.style.Icon({");
-                                    client.println("anchor: [0.5, 0.5],");
-                                    client.println("anchorXUnits: \"fraction\",");
-                                    client.println("anchorYUnits: \"fraction\",");
-                                    client.println("src: \"https://upload.wikimedia.org/wikipedia/commons/e/ec/RedDot.svg\"");
-                                    client.println("}) })");
-                                    client.println("});");
-                                    client.println(");");
-                                }
+                            for (int i = 0; i < numNodes; i++) {
+                                // add point on map
+                                client.println("map.addLayer(");
+                                client.println("new ol.layer.Vector({");
+                                client.println("source: new ol.source.Vector({ features: [new ol.Feature({");
+                                client.print("geometry: new ol.geom.Point(ol.proj.transform([parseFloat(");
+                                client.print(lons[i]);
+                                client.print("), parseFloat(");
+                                client.print(lats[i]);
+                                client.println(")], 'EPSG:4326', 'EPSG:3857')),");
+                                client.println("})] }),");
+                                client.println("style: new ol.style.Style({ image: new ol.style.Icon({");
+                                client.println("anchor: [0.5, 0.5],");
+                                client.println("anchorXUnits: \"fraction\",");
+                                client.println("anchorYUnits: \"fraction\",");
+                                client.println("src: \"https://upload.wikimedia.org/wikipedia/commons/e/ec/RedDot.svg\"");
+                                client.println("}) })");
+                                client.println("});");
+                                client.println(");");
                             }
 
                             client.println("</script>");

@@ -1,2 +1,2 @@
 void initWebServer();
-void handleClient(double lats[], double lons[]);
+void handleClient(double base_lat, double base_lon, int ids[], double lats[], double lons[]);
