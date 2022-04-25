@@ -3,13 +3,11 @@
 #include <ArduinoJson.h>
 #include <SPI.h>
 
-#if(NODE_TYPE == 0)
 #define MAX_NODES 100 // maximum number of nodes in the entire network
 int num_disc_nodes = 0;
 int node_idlist[MAX_NODES];
 double node_latlist[MAX_NODES];
 double node_lonlist[MAX_NODES];
-#endif
 
 #if(NODE_TYPE == 1)
 int packetCounter = 0;
@@ -18,10 +16,10 @@ void sendMessage(double lat, double lon, uint32_t time, uint32_t date)
     StaticJsonDocument<200> sending_data;
 
     char delimiter = '/';
-    String packet_id = DEVICE_ADDRESS + (String)delimiter + (String)packetCounter;
+    String packet_id = NODE_ADD + (String)delimiter + (String)packetCounter;
 
     sending_data["id"] = packet_id;
-    sending_data["from"] = DEVICE_ADDRESS;
+    sending_data["from"] = NODE_ADD;
     sending_data["lat"] = lat;
     sending_data["lon"] = lon;
     sending_data["time"] = time;
@@ -261,7 +259,6 @@ void initLora()
     Serial.println("LoRa Initialized");
 
     LoRa.receive();
-    //LoRa.onReceive(onReceive);
 }
 
 int *getIDList()

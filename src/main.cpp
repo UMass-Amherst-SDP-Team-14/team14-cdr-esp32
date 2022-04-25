@@ -13,6 +13,7 @@ SoftwareSerial ss(GPS_RXPIN, GPS_TXPIN);
 TinyGPSPlus gps;
 
 int isInit = 0;
+int isActive = 0; // set to 0 later
 
 void setup()
 {
@@ -30,22 +31,19 @@ void setup()
 
     // intialize GPS
     gpsInit();
-#if(NODE_TYPE == 0)
-    gpsOn();
-    isInit = 1;
-    while (ss.available() == 0)
-#endif
-
-    // initialize lora
-    initLora();
 
 #if(NODE_TYPE == 0)
+    isActive = 1;
+
     // initialize web server
     initWebServer();
 
     // initialize sd card
     initSDCard();
 #endif
+
+    // initialize lora
+    initLora();
 }
 
 unsigned long lastSent = 0;
@@ -59,10 +57,6 @@ uint32_t currentDate = 0;
 
 int button_pressed = 0;
 int executed_button = 0;
-
-#if(NODE_TYPE == 1)
-int isActive = 0; // set to 0 later
-#endif
 
 void loop()
 {

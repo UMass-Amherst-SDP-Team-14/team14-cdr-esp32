@@ -27,7 +27,12 @@
 #define LORA_SSPIN 5
 #define LORA_RSTPIN 14
 #define LORA_DIO0PIN 2
+
+// VSPI Bus
 // SCK = 30, MISO = 31, MOSI = 37 for ESP32
+#define VSPI_CLK 18
+#define VSPI_MISO 19
+#define VSPI_MOSI 23
 
 #define LED_PIN 25  // state LED pin
 #define BTN_PIN 32  // User input button pin
