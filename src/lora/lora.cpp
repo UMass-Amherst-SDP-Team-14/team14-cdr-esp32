@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 #include <SPI.h>
 
-#ifdef BASE_NODE
+#if(NODE_TYPE == 0)
 #define MAX_NODES 100 // maximum number of nodes in the entire network
 int num_disc_nodes = 0;
 int node_idlist[MAX_NODES];
@@ -11,7 +11,7 @@ double node_latlist[MAX_NODES];
 double node_lonlist[MAX_NODES];
 #endif
 
-#ifdef WORKER_NODE
+#if(NODE_TYPE == 1)
 int packetCounter = 0;
 void sendMessage(double lat, double lon, uint32_t time, uint32_t date)
 {
@@ -121,7 +121,7 @@ void rxPackets()
             }
         }
 
-#ifdef BASE_NODE
+#if(NODE_TYPE == 0)
         // pull coordinates out of packet
         // check if index already exists
 
@@ -204,7 +204,7 @@ void onReceive(int packetSize)
         }
     }
 
-#ifdef BASE_NODE
+#if(NODE_TYPE == 0)
     // pull coordinates out of packet
     // check if index already exists
 
@@ -264,7 +264,7 @@ void initLora()
     //LoRa.onReceive(onReceive);
 }
 
-#ifdef BASE_NODE
+#if(NODE_TYPE == 0)
 int *getIDList()
 {
     return node_idlist;

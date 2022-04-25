@@ -4,6 +4,7 @@
 #include "gps/gps.h"
 #include "lora/lora.h"
 #include "web/web.h"
+#include "sdcard/sdcard.h"
 
 // The serial connection to the GPS device
 SoftwareSerial ss(GPS_RXPIN, GPS_TXPIN);
@@ -11,27 +12,39 @@ SoftwareSerial ss(GPS_RXPIN, GPS_TXPIN);
 // gps encoder/decoder object
 TinyGPSPlus gps;
 
+int isInit = 0;
+
 void setup()
 {
     // serial
     Serial.begin(SERIAL_BAUD); // device serial
     ss.begin(GPS_BAUD);        // gps serial
 
+#if(NODE_TYPE == 1)
     // setup i/o pins
     pinMode(BTN_PIN, INPUT_PULLUP);
 
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, HIGH);
+#endif
 
     // intialize GPS
     gpsInit();
+#if(NODE_TYPE == 0)
+    gpsOn();
+    isInit = 1;
+    while (ss.available() == 0)
+#endif
 
     // initialize lora
     initLora();
 
-#ifdef BASE_NODE
+#if(NODE_TYPE == 0)
     // initialize web server
     initWebServer();
+
+    // initialize sd card
+    initSDCard();
 #endif
 }
 
@@ -47,25 +60,20 @@ uint32_t currentDate = 0;
 int button_pressed = 0;
 int executed_button = 0;
 
-#ifdef BASE_NODE
-int isActive = 1; // set to 1 to ignore button
+#if(NODE_TYPE == 1)
+int isActive = 0; // set to 0 later
 #endif
-
-#ifdef WORKER_NODE
-int isActive = 1; // set to 0 later
-#endif
-
-int isInit = 0;
 
 void loop()
 {
     rxPackets();
     processRelays();
 
-#ifdef BASE_NODE
+#if(NODE_TYPE == 0)
     handleClient(currentLat, currentLng, getIDList(), getLatList(), getLonList()); // handle web server clients
 #endif
 
+#if(NODE_TYPE == 1)
     // is the button being pressed?
     if (digitalRead(BTN_PIN) == HIGH)
     {
@@ -111,9 +119,12 @@ void loop()
         digitalWrite(LED_PIN, LOW);
         lastBlink = millis();
     }
+#endif
 
+#if(NODE_TYPE == 1)
     if (isActive)
     {
+#endif
         if (!isInit)
         {
             gpsOn();
@@ -141,7 +152,7 @@ void loop()
         }
 
 // Do we need to send anything? Check if lat/lon has changed or if the timeout is exceeded
-#ifdef WORKER_NODE
+#if(NODE_TYPE == 1)
         float diffLat = abs(currentLat - lastLat);
         float diffLon = abs(currentLng - lastLng);
         if (diffLat > LOC_TOLERANCE || diffLon > LOC_TOLERANCE || millis() > lastSent + TIMEOUT_SEND)
@@ -152,5 +163,8 @@ void loop()
             lastSent = millis(); // update timestamp for the last message sent
         }
 #endif
+
+#if(NODE_TYPE == 1)
     }
+#endif
 }
