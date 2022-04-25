@@ -4,9 +4,6 @@ void rxPackets();
 void onReceive(int packetSize);
 void processRelays();
 void initLora();
-
-#ifdef BASE_NODE
 int* getIDList();
 double* getLatList();
 double* getLonList();
-#endif

@@ -99,7 +99,7 @@ void rxPackets()
             }
         }
 
-        if (incoming_packet["from"] == DEVICE_ADDRESS)
+        if (incoming_packet["from"] == NODE_ADD)
         {
             shouldSendRelay = false;
         }
@@ -182,7 +182,7 @@ void onReceive(int packetSize)
         }
     }
 
-    if (incoming_packet["from"] == DEVICE_ADDRESS)
+    if (incoming_packet["from"] == NODE_ADD)
     {
         shouldSendRelay = false;
     }
@@ -264,7 +264,6 @@ void initLora()
     //LoRa.onReceive(onReceive);
 }
 
-#if(NODE_TYPE == 0)
 int *getIDList()
 {
     return node_idlist;
@@ -279,4 +278,3 @@ double *getLonList()
 {
     return node_lonlist;
 }
-#endif

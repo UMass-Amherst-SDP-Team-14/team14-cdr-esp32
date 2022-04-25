@@ -1,10 +1,3 @@
-// State Definitions (change these depending on type of node)
-#define BASE_NODE
-//#define WORKER_NODE
-//#define DEVICE_ADDRESS 88  // worker 2
-//#define DEVICE_ADDRESS 79  // worker 1
-#define DEVICE_ADDRESS 00  // base 0
-
 // General Settings
 #define SERIAL_BAUD 115200  // ESP32 Baud rate
 #define LED_DELAY 1000
