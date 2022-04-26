@@ -35,11 +35,11 @@ void setup()
 #if(NODE_TYPE == 0)
     isActive = 1;
 
-    // initialize web server
-    initWebServer();
-
     // initialize sd card
     initSDCard();
+
+    // initialize web server
+    initWeb();
 #endif
 
     // initialize lora
@@ -62,10 +62,6 @@ void loop()
 {
     rxPackets();
     processRelays();
-
-#if(NODE_TYPE == 0)
-    handleClient(currentLat, currentLng, getIDList(), getLatList(), getLonList()); // handle web server clients
-#endif
 
 #if(NODE_TYPE == 1)
     // is the button being pressed?
