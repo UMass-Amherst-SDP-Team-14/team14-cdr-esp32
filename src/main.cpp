@@ -4,7 +4,6 @@
 #include "gps/gps.h"
 #include "lora/lora.h"
 #include "web/web.h"
-#include "sdcard/sdcard.h"
 
 // The serial connection to the GPS device
 SoftwareSerial ss(GPS_RXPIN, GPS_TXPIN);
@@ -21,7 +20,7 @@ void setup()
     Serial.begin(SERIAL_BAUD); // device serial
     ss.begin(GPS_BAUD);        // gps serial
 
-#if(NODE_TYPE == 1)
+#if (NODE_TYPE == 1)
     // setup i/o pins
     pinMode(BTN_PIN, INPUT_PULLUP);
 
@@ -32,14 +31,11 @@ void setup()
     // intialize GPS
     gpsInit();
 
-#if(NODE_TYPE == 0)
+#if (NODE_TYPE == 0)
     isActive = 1;
 
-    // initialize sd card
-    initSDCard();
-
     // initialize web server
-    initWeb();
+    //initWeb();
 #endif
 
     // initialize lora
@@ -60,10 +56,21 @@ int executed_button = 0;
 
 void loop()
 {
+    // we cannot execute lora functions when web server is reading SD card (same SPI bus)
     rxPackets();
     processRelays();
 
-#if(NODE_TYPE == 1)
+    // create base location arrays (for now we only support one base station)
+#if (NODE_TYPE == 0)
+    /*int base_idlist[] = {01};
+    double base_latlist[] = {currentLat};
+    double base_lonlist[] = {currentLng};
+
+    updateLocations(getIDList(), getLatList(), getLonList(), base_idlist, base_latlist, base_lonlist);
+    handleWebClients();*/
+#endif
+
+#if (NODE_TYPE == 1)
     // is the button being pressed?
     if (digitalRead(BTN_PIN) == HIGH)
     {
@@ -111,10 +118,8 @@ void loop()
     }
 #endif
 
-#if(NODE_TYPE == 1)
     if (isActive)
     {
-#endif
         if (!isInit)
         {
             gpsOn();
@@ -142,7 +147,7 @@ void loop()
         }
 
 // Do we need to send anything? Check if lat/lon has changed or if the timeout is exceeded
-#if(NODE_TYPE == 1)
+#if (NODE_TYPE == 1)
         float diffLat = abs(currentLat - lastLat);
         float diffLon = abs(currentLng - lastLng);
         if (diffLat > LOC_TOLERANCE || diffLon > LOC_TOLERANCE || millis() > lastSent + TIMEOUT_SEND)
@@ -154,7 +159,5 @@ void loop()
         }
 #endif
 
-#if(NODE_TYPE == 1)
     }
-#endif
 }

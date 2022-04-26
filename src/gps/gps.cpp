@@ -56,13 +56,6 @@ uint32_t getCurrentTime(TinyGPSPlus gps)
     }
 }
 
-void gpsInit()
-{
-    pinMode(GPS_CTRL_PIN, OUTPUT);
-    digitalWrite(GPS_CTRL_PIN, LOW);
-    Serial.println("GPS Init");
-}
-
 void gpsOn()
 {
     digitalWrite(GPS_CTRL_PIN, HIGH);
@@ -73,4 +66,11 @@ void gpsOff()
 {
     digitalWrite(GPS_CTRL_PIN, HIGH);
     Serial.println("GPS Off");
+}
+
+void gpsInit()
+{
+    pinMode(GPS_CTRL_PIN, OUTPUT);
+    gpsOff();
+    Serial.println("GPS Init");
 }

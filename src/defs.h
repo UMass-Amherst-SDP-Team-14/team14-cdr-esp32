@@ -5,7 +5,7 @@
 #define LED_BLINK_DURATION 100
 
 // Web Settings
-#define WEB_SSID "gotcha-base0"  // only relevant if "BASE_NODE" is defined
+#define WEB_SSID "gotcha-base1"  // only relevant if "BASE_NODE" is defined
 #define WEB_PORT 80
 #define WEB_TIMEOUTTIME 5000 // in ms
 
@@ -20,9 +20,9 @@
 #define LOC_TOLERANCE 0.00005 // in coordinate system (before sending an updates packet)
 
 // Physical Pins
-#define GPS_RXPIN 34
+#define GPS_RXPIN 35
 #define GPS_TXPIN 12  // unused, set to whatever
-#define GPS_CTRL_PIN 35  // power control pin (MOSFET) for the GPS
+#define GPS_CTRL_PIN 34  // power control pin (MOSFET) for the GPS
 
 #define LORA_SSPIN 5
 #define LORA_RSTPIN 14

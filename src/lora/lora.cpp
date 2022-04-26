@@ -5,11 +5,11 @@
 
 #define MAX_NODES 100 // maximum number of nodes in the entire network
 int num_disc_nodes = 0;
-int node_idlist[MAX_NODES];
-double node_latlist[MAX_NODES];
-double node_lonlist[MAX_NODES];
+int node_idlist[MAX_NODES] = {};
+double node_latlist[MAX_NODES] = {};
+double node_lonlist[MAX_NODES] = {};
 
-#if(NODE_TYPE == 1)
+#if (NODE_TYPE == 1)
 int packetCounter = 0;
 void sendMessage(double lat, double lon, uint32_t time, uint32_t date)
 {
@@ -119,7 +119,7 @@ void rxPackets()
             }
         }
 
-#if(NODE_TYPE == 0)
+#if (NODE_TYPE == 0)
         // pull coordinates out of packet
         // check if index already exists
 
@@ -202,7 +202,7 @@ void onReceive(int packetSize)
         }
     }
 
-#if(NODE_TYPE == 0)
+#if (NODE_TYPE == 0)
     // pull coordinates out of packet
     // check if index already exists
 
