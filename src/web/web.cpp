@@ -1,25 +1,20 @@
-#include "defs.h"
 #include <WiFi.h>
-#include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
-#include <Update.h>
 #include <ArduinoJson.h>
-#include <SPI.h>
-#include "FS.h"
-#include "SD.h"
+#include <FS.h>
+#include <SD.h>
+#include "defs.h"
 
 WebServer server(80);
 
-// SPIClass spi_main(VSPI);
-
 void initSDCard()
 {
-  // spi_main.begin(VSPI_CLK, VSPI_MISO, VSPI_MOSI);
   if (!SD.begin(SD_CSPIN))
   {
     Serial.println("SD card failed to initialize");
-    return;
+    delay(1000);
+    initSDCard();
   }
   Serial.println("SD card initialized");
 }
@@ -158,15 +153,14 @@ void updateLocations(int *worker_id_list, double *worker_lat_list, double *worke
   serializeJson(data_json, data_json_content);
 
   File file = SD.open("/data.json", FILE_WRITE);
-  if (!file)
+  if (file)
+  {
+    file.print(data_json_content);
+    file.close();
+  }
+  else
   {
     Serial.println("Failed to open data.json for writing");
     return;
   }
-
-  if (!file.print(data_json_content))
-  {
-    Serial.println("Failed to write to data.json");
-  }
-  file.close();
 }

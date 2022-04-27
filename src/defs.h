@@ -20,9 +20,15 @@
 #define LOC_TOLERANCE 0.00005 // in coordinate system (before sending an updates packet)
 
 // Physical Pins
+#if NODE_TYPE == 0
+#define GPS_RXPIN 34
+#define GPS_CTRL_PIN 35  // power control pin (MOSFET) for the GPS
+#elif NODE_TYPE == 1
 #define GPS_RXPIN 35
-#define GPS_TXPIN 12  // unused, set to whatever
 #define GPS_CTRL_PIN 34  // power control pin (MOSFET) for the GPS
+#endif
+
+#define GPS_TXPIN 12  // unused, set to whatever
 
 #define LORA_SSPIN 5
 #define LORA_RSTPIN 14

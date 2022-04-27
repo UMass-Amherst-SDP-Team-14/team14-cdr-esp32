@@ -18,7 +18,6 @@ void setup()
 {
     // serial
     Serial.begin(SERIAL_BAUD); // device serial
-    ss.begin(GPS_BAUD);        // gps serial
 
 #if (NODE_TYPE == 1)
     // setup i/o pins
@@ -29,16 +28,16 @@ void setup()
 #endif
 
     // intialize GPS
+    ss.begin(GPS_BAUD); // gps serial
     gpsInit();
 
 #if (NODE_TYPE == 0)
     isActive = 1;
 
     // initialize web server
-    //initWeb();
+    initWeb();
 #endif
 
-    // initialize lora
     initLora();
 }
 
@@ -62,12 +61,12 @@ void loop()
 
     // create base location arrays (for now we only support one base station)
 #if (NODE_TYPE == 0)
-    /*int base_idlist[] = {01};
+    int base_idlist[] = {01};
     double base_latlist[] = {currentLat};
     double base_lonlist[] = {currentLng};
 
     updateLocations(getIDList(), getLatList(), getLonList(), base_idlist, base_latlist, base_lonlist);
-    handleWebClients();*/
+    handleWebClients();
 #endif
 
 #if (NODE_TYPE == 1)
@@ -158,6 +157,5 @@ void loop()
             lastSent = millis(); // update timestamp for the last message sent
         }
 #endif
-
     }
 }
